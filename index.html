@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tecnología Aplicada al Campo (Inteligencia Artificial)</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Luxon para manejo de tiempos -->
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1/build/global/luxon.min.js"></script>
+    <!-- Adaptador de Luxon para Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.0.0"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+          integrity="sha256-sA+eCHBfC/xI3Mo4Au/5r1pqOqt2ZCDa+Gk5wzP6kPc="
+          crossorigin=""/>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+            integrity="sha256-DfEo4pbtB+B2UwzyljTZ4LPfzq2gx1Jb+Y1HQqCsmEM="
+            crossorigin=""></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0d47a1, #1a237e);
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin: 10px 0;
+            font-size: 1.5em;
+            text-shadow: 2px 2px #000;
+        }
+
+        .ownership {
+            font-size: 0.9em;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+
+        #temperature {
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        #individualTemps {
+            margin-bottom: 10px;
+            font-size: 1em;
+            color: #fff;
+        }
+
+        #individualTemps p {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        #individualTemps ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #individualTemps li {
+            margin: 3px 0;
+        }
+
+        button {
+            background-color: #00c853; 
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            font-size: 0.9em;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #00b74a;
+        }
+
+        #chartContainer {
+            margin-top: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        #coordsContainer, #intervalContainer {
+            margin-bottom: 10px;
+            color: #fff;
+            font-size: 0.9em;
+        }
+
+        #coordsContainer, #intervalContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #coordsContainer label, #intervalContainer label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        #coordsContainer input, #intervalContainer input {
+            width: 60px;
+            padding: 5px;
+            margin: 3px;
+            border-radius: 4px;
+            border: none;
+            outline: none;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        #directionSelectors {
+            display: flex;
+            justify-content: center;
+            margin-top: 5px;
+        }
+
+        #directionSelectors div {
+            margin: 0 10px;
+        }
+
+        select {
+            padding: 5px;
+            border-radius: 4px;
+            border: none;
+            outline: none;
+            font-size: 0.9em;
+        }
+
+        #map {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            border: 2px solid #fff;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.2em;
+            }
+            button, #coordsContainer input, #intervalContainer input, select {
+                font-size: 0.8em;
+                padding: 5px 10px;
+            }
+            #coordsContainer, #intervalContainer {
+                font-size: 0.8em;
+            }
+            #map {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Tecnología Aplicada al Campo (Inteligencia Artificial)</h1>
+    <p class="ownership">Propiedad del Ingeniero Carlos Pinilla whatsapp 3192604139</p>
+    <p id="temperature"></p>
+    
+    <div id="individualTemps">
+        <p>Valores actuales:</p>
+        <ul>
+            <li id="tempValue">Temperatura: - °C</li>
+            <li id="humidValue">Humedad: - %</li>
+        </ul>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="coordsContainer">
+        <p>Coordenadas (Grados, Min, Seg):</p>
+        <div>
+            <label>Lat:</label>
+            <input type="text" id="latDeg" value="5" placeholder="D">
+            <input type="text" id="latMin" value="52" placeholder="M">
+            <input type="text" id="latSec" value="52" placeholder="S">
+        </div>
+        <div>
+            <label>Lon:</label>
+            <input type="text" id="lonDeg" value="71" placeholder="D">
+            <input type="text" id="lonMin" value="53" placeholder="M">
+            <input type="text" id="lonSec" value="30" placeholder="S">
+        </div>
+        <div id="directionSelectors">
+            <div>
+                <label>Lat:</label>
+                <select id="latDir">
+                    <option value="N" selected>N</option>
+                    <option value="S">S</option>
+                </select>
+            </div>
+            <div>
+                <label>Lon:</label>
+                <select id="lonDir">
+                    <option value="E">E</option>
+                    <option value="O" selected>O</option>
+                </select>
+            </div>
+        </div>
+        <button id="updateCoordsBtn">Actualizar Coordenadas</button>
+    </div>
+
+    <div id="intervalContainer">
+        <p>Intervalo (segundos):</p>
+        <input type="text" id="intervalInput" value="5">
+        <button id="updateIntervalBtn">Actualizar Intervalo</button>
+    </div>
+
+    <button id="startTemp">Iniciar</button>
+    <button id="stopTemp" disabled>Detener</button>
+    <button id="downloadData" disabled>Descargar</button>
+
+    <div id="chartContainer">
+        <canvas id="tempChart"></canvas>
+    </div>
+
+    <script>
+        let intervalId;
+        const recordedData = [];
+        let chart;
+        let latitude = 5 + 52/60 + 52/3600; 
+        let longitude = -(71 + 53/60 + 30/3600); 
+        let dataInterval = 5000; // por defecto 5 segundos
+
+        // Función para convertir DMS a Decimal
+        function dmsToDecimal(deg, min, sec, dir) {
+            const d = parseFloat(deg);
+            const m = parseFloat(min);
+            const s = parseFloat(sec);
+            if (isNaN(d) || isNaN(m) || isNaN(s)) {
+                return NaN;
+            }
+            let decimal = Math.abs(d) + (m/60) + (s/3600);
+            if (dir === 'S' || dir === 'O') {
+                decimal = -decimal;
+            }
+            return decimal;
+        }
+
+        // Función para convertir Decimal a DMS
+        function decimalToDMS(decimal, type) {
+            const dir = (type === 'lat') ? (decimal >= 0 ? 'N' : 'S') : (decimal >= 0 ? 'E' : 'O');
+            const absDecimal = Math.abs(decimal);
+            const deg = Math.floor(absDecimal);
+            const minFloat = (absDecimal - deg) * 60;
+            const min = Math.floor(minFloat);
+            const sec = Math.round((minFloat - min) * 60);
+            return { deg, min, sec, dir };
+        }
+
+        // Inicializar la gráfica
+        function initializeChart() {
+            const ctx = document.getElementById('tempChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Temperatura (°C)',
+                            data: [],
+                            backgroundColor: 'rgba(255, 255, 0, 0.2)',
+                            borderColor: 'rgba(255, 255, 0, 1)',
+                            pointBackgroundColor: '#00ff00',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: 'Humedad (%)',
+                            data: [],
+                            backgroundColor: 'rgba(0, 255, 255, 0.2)',
+                            borderColor: 'rgba(0, 255, 255, 1)',
+                            pointBackgroundColor: '#00ffff',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            yAxisID: 'y2',
+                            borderDash: [5,5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'minute',
+                                displayFormats: {
+                                    minute: 'HH:mm:ss'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Hora',
+                                color: '#fff'
+                            },
+                            ticks: {
+                                color: '#fff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            }
+                        },
+                        y1: {
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Temperatura (°C)',
+                                color: '#fff'
+                            },
+                            beginAtZero: false,
+                            ticks: {
+                                color: '#fff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            }
+                        },
+                        y2: {
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Humedad (%)',
+                                color: '#fff'
+                            },
+                            beginAtZero: false,
+                            ticks: {
+                                color: '#fff'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#fff'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Inicializar la gráfica
+        initializeChart();
+
+        // Función para obtener datos de Open-Meteo
+        async function getDataFromOpenMeteo(lat, lon) {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m&timezone=UTC`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    console.error(`Error HTTP: ${response.status}`);
+                    throw new Error("No se pudo obtener datos de la API.");
+                }
+                const data = await response.json();
+                const currentTime = data.current_weather.time;
+                const temperature = data.current_weather.temperature;
+                const timeArray = data.hourly.time;
+                const humidArray = data.hourly.relativehumidity_2m;
+                const idx = timeArray.indexOf(currentTime);
+                let humidity = null;
+                if (idx !== -1) {
+                    humidity = humidArray[idx];
+                } else {
+                    humidity = humidArray[humidArray.length - 1] || null;
+                }
+                return { temperature, humidity };
+            } catch (error) {
+                console.error("Error al obtener datos:", error);
+                throw error;
+            }
+        }
+
+        // Función para guardar datos en un archivo
+        function saveToFile(data) {
+            const blob = new Blob([data], { type: 'text/plain' });
+            const anchor = document.createElement('a');
+            anchor.href = URL.createObjectURL(blob);
+            anchor.download = 'datos.txt';
+            anchor.click();
+            URL.revokeObjectURL(anchor.href);
+        }
+
+        // Actualizar coordenadas
+        document.getElementById('updateCoordsBtn').addEventListener('click', () => {
+            updateCoordinatesDisplay();
+            updateMapView();
+        });
+
+        function updateCoordinatesDisplay(){
+            const latDegVal = document.getElementById('latDeg').value;
+            const latMinVal = document.getElementById('latMin').value;
+            const latSecVal = document.getElementById('latSec').value;
+            const latDirVal = document.getElementById('latDir').value;
+
+            const lonDegVal = document.getElementById('lonDeg').value;
+            const lonMinVal = document.getElementById('lonMin').value;
+            const lonSecVal = document.getElementById('lonSec').value;
+            const lonDirVal = document.getElementById('lonDir').value;
+
+            const latDecimal = dmsToDecimal(latDegVal, latMinVal, latSecVal, latDirVal);
+            const lonDecimal = dmsToDecimal(lonDegVal, lonMinVal, lonSecVal, lonDirVal);
+
+            if (!isNaN(latDecimal) && !isNaN(lonDecimal)) {
+                // Validar que lat y lon estén dentro de rangos posibles
+                if (latDecimal >= -90 && latDecimal <= 90 && lonDecimal >= -180 && lonDecimal <= 180) {
+                    latitude = latDecimal;
+                    longitude = lonDecimal;
+                    document.getElementById('temperature').textContent = `Coords: ${latitude.toFixed(6)}, ${Math.abs(longitude).toFixed(6)} ${lonDirVal}`;
+                } else {
+                    document.getElementById('temperature').textContent = "Coordenadas fuera de rango (-90 a 90 para latitud, -180 a 180 para longitud).";
+                }
+            } else {
+                document.getElementById('temperature').textContent = "Coordenadas no válidas";
+            }
+        }
+
+        // Actualizar el intervalo
+        document.getElementById('updateIntervalBtn').addEventListener('click', () => {
+            const intervalVal = parseFloat(document.getElementById('intervalInput').value);
+            if (!isNaN(intervalVal) && intervalVal > 0) {
+                dataInterval = intervalVal * 1000;
+                document.getElementById('temperature').textContent = `Intervalo: ${intervalVal} s`;
+            } else {
+                document.getElementById('temperature').textContent = "Intervalo no válido (debe ser un número mayor a 0).";
+            }
+        });
+
+        // Iniciar toma de datos
+        document.getElementById('startTemp').addEventListener('click', () => {
+            // Validar coordenadas antes de iniciar
+            const latDegVal = document.getElementById('latDeg').value;
+            const latMinVal = document.getElementById('latMin').value;
+            const latSecVal = document.getElementById('latSec').value;
+            const latDirVal = document.getElementById('latDir').value;
+
+            const lonDegVal = document.getElementById('lonDeg').value;
+            const lonMinVal = document.getElementById('lonMin').value;
+            const lonSecVal = document.getElementById('lonSec').value;
+            const lonDirVal = document.getElementById('lonDir').value;
+
+            const latDecimal = dmsToDecimal(latDegVal, latMinVal, latSecVal, latDirVal);
+            const lonDecimal = dmsToDecimal(lonDegVal, lonMinVal, lonSecVal, lonDirVal);
+            const intervalVal = parseFloat(document.getElementById('intervalInput').value);
+
+            // Verificar validez del intervalo
+            if (isNaN(intervalVal) || intervalVal <= 0) {
+                document.getElementById('temperature').textContent = "No se puede iniciar: intervalo no válido.";
+                return;
+            }
+
+            // Verificar validez de las coordenadas
+            if (isNaN(latDecimal) || isNaN(lonDecimal) || latDecimal < -90 || latDecimal > 90 || lonDecimal < -180 || lonDecimal > 180) {
+                document.getElementById('temperature').textContent = "No se puede iniciar: coordenadas no válidas o fuera de rango.";
+                return;
+            }
+
+            // Asignar los valores validados
+            latitude = latDecimal;
+            longitude = lonDecimal;
+            dataInterval = intervalVal * 1000;
+            document.getElementById('temperature').textContent = `Iniciando con coords: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} y intervalo: ${intervalVal}s`;
+
+            document.getElementById('startTemp').disabled = true;
+            document.getElementById('stopTemp').disabled = false;
+            document.getElementById('downloadData').disabled = true;
+
+            recordedData.length = 0;
+            chart.data.datasets[0].data = [];
+            chart.data.datasets[1].data = [];
+            chart.update();
+
+            intervalId = setInterval(async () => {
+                try {
+                    const { temperature, humidity } = await getDataFromOpenMeteo(latitude, longitude);
+                    const timestamp = new Date();
+                    recordedData.push(`${timestamp.toISOString()}, Lat:${latitude.toFixed(6)}, Lon:${Math.abs(longitude).toFixed(6)}, Temp:${temperature.toFixed(2)}°C, Hum:${humidity.toFixed(2)}%`);
+
+                    document.getElementById('tempValue').textContent = `Temperatura: ${temperature.toFixed(2)} °C`;
+                    document.getElementById('humidValue').textContent = `Humedad: ${humidity.toFixed(2)} %`;
+                    document.getElementById('temperature').textContent = `Última medición: ${timestamp.toLocaleTimeString()}`;
+
+                    chart.data.datasets[0].data.push({ x: timestamp.toISOString(), y: parseFloat(temperature.toFixed(2)) });
+                    chart.data.datasets[1].data.push({ x: timestamp.toISOString(), y: parseFloat(humidity.toFixed(2)) });
+                    chart.update();
+                } catch (error) {
+                    console.error("Error al obtener datos:", error);
+                    document.getElementById('temperature').textContent = "Error al obtener datos. Reintentando...";
+                }
+            }, dataInterval);
+        });
+
+        // Detener toma de datos
+        document.getElementById('stopTemp').addEventListener('click', () => {
+            clearInterval(intervalId);
+            document.getElementById('startTemp').disabled = false;
+            document.getElementById('stopTemp').disabled = true;
+            document.getElementById('downloadData').disabled = false;
+            document.getElementById('temperature').textContent += " Grabación detenida.";
+        });
+
+        // Descargar datos
+        document.getElementById('downloadData').addEventListener('click', () => {
+            if (recordedData.length > 0) {
+                saveToFile(recordedData.join('\n'));
+            } else {
+                document.getElementById('temperature').textContent = "No hay datos para descargar.";
+            }
+        });
+
+        // Valores por defecto al cargar
+        window.onload = () => {
+            latitude = dmsToDecimal(5, 52, 52, 'N');
+            longitude = dmsToDecimal(71, 53, 30, 'O');
+            document.getElementById('temperature').textContent = `Coords: ${latitude.toFixed(6)}, ${Math.abs(longitude).toFixed(6)} O`;
+            const latData = decimalToDMS(latitude, 'lat');
+            document.getElementById('latDeg').value = latData.deg;
+            document.getElementById('latMin').value = latData.min;
+            document.getElementById('latSec').value = latData.sec;
+            document.getElementById('latDir').value = latData.dir;
+
+            const lonData = decimalToDMS(longitude, 'lon');
+            document.getElementById('lonDeg').value = lonData.deg;
+            document.getElementById('lonMin').value = lonData.min;
+            document.getElementById('lonSec').value = lonData.sec;
+            document.getElementById('lonDir').value = lonData.dir;
+
+            initializeMap();
+        };
+
+        // Función para inicializar Leaflet
+        let map;
+        let marker;
+        function initializeMap() {
+            const initialPosition = [latitude, longitude];
+            map = L.map('map').setView(initialPosition, 8);
+
+            // Añadir capa de OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Añadir marcador
+            marker = L.marker(initialPosition, { draggable: true }).addTo(map);
+
+            // Listener para arrastrar el marcador
+            marker.on('dragend', function(e) {
+                const newPos = marker.getLatLng();
+                latitude = newPos.lat;
+                longitude = newPos.lng;
+                document.getElementById('temperature').textContent = `Coords: ${latitude.toFixed(6)}, ${Math.abs(longitude).toFixed(6)} ${longitude >=0 ? 'E' : 'O'}`;
+
+                // Actualizar los campos DMS
+                const latData = decimalToDMS(latitude, 'lat');
+                document.getElementById('latDeg').value = latData.deg;
+                document.getElementById('latMin').value = latData.min;
+                document.getElementById('latSec').value = latData.sec;
+                document.getElementById('latDir').value = latData.dir;
+
+                const lonData = decimalToDMS(longitude, 'lon');
+                document.getElementById('lonDeg').value = lonData.deg;
+                document.getElementById('lonMin').value = lonData.min;
+                document.getElementById('lonSec').value = lonData.sec;
+                document.getElementById('lonDir').value = lonData.dir;
+            });
+        }
+
+        // Función para actualizar la vista del mapa
+        function updateMapView() {
+            const newPosition = [latitude, longitude];
+            map.setView(newPosition, 8);
+            marker.setLatLng(newPosition);
+        }
+    </script>
+</body>
+</html>
