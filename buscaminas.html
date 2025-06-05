@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscaminas</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #eee; }
+        #board { display: grid; margin: 20px auto; gap: 2px; }
+        .cell {
+            width: 30px; height: 30px; background-color: #bbb; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 16px; user-select: none;
+        }
+        .cell.revealed { background-color: #e0e0e0; cursor: default; }
+        .cell.bomb { background-color: #ff6b6b; }
+        .cell.flag { background-color: #ffe66d; }
+    </style>
+</head>
+<body>
+    <h1>Buscaminas</h1>
+    <div id="board"></div>
+    <p id="status"></p>
+    <script>
+        const rows = 10;
+        const cols = 10;
+        const bombsCount = 10;
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status');
+        boardElement.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
+        let board = [];
+        let revealedCount = 0;
+        let gameOver = false;
+
+        function initBoard() {
+            board = [];
+            revealedCount = 0;
+            gameOver = false;
+            statusElement.textContent = '';
+            boardElement.innerHTML = '';
+            for (let r = 0; r < rows; r++) {
+                const row = [];
+                for (let c = 0; c < cols; c++) {
+                    const cell = {
+                        bomb: false,
+                        revealed: false,
+                        flag: false,
+                        adjacent: 0,
+                        element: document.createElement('div')
+                    };
+                    cell.element.classList.add('cell');
+                    cell.element.addEventListener('click', () => handleLeftClick(r, c));
+                    cell.element.addEventListener('contextmenu', e => { e.preventDefault(); handleRightClick(r, c); });
+                    boardElement.appendChild(cell.element);
+                    row.push(cell);
+                }
+                board.push(row);
+            }
+            placeBombs();
+            calculateAdjacents();
+        }
+
+        function placeBombs() {
+            let placed = 0;
+            while (placed < bombsCount) {
+                const r = Math.floor(Math.random() * rows);
+                const c = Math.floor(Math.random() * cols);
+                if (!board[r][c].bomb) {
+                    board[r][c].bomb = true;
+                    placed++;
+                }
+            }
+        }
+
+        function calculateAdjacents() {
+            const directions = [-1, 0, 1];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (board[r][c].bomb) continue;
+                    let count = 0;
+                    for (let dr of directions) {
+                        for (let dc of directions) {
+                            if (dr === 0 && dc === 0) continue;
+                            const nr = r + dr;
+                            const nc = c + dc;
+                            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc].bomb) {
+                                count++;
+                            }
+                        }
+                    }
+                    board[r][c].adjacent = count;
+                }
+            }
+        }
+
+        function handleLeftClick(r, c) {
+            if (gameOver) return;
+            const cell = board[r][c];
+            if (cell.revealed || cell.flag) return;
+            revealCell(r, c);
+            checkWin();
+        }
+
+        function handleRightClick(r, c) {
+            if (gameOver) return;
+            const cell = board[r][c];
+            if (cell.revealed) return;
+            cell.flag = !cell.flag;
+            cell.element.classList.toggle('flag', cell.flag);
+            cell.element.textContent = cell.flag ? '⚑' : '';
+        }
+
+        function revealCell(r, c) {
+            const cell = board[r][c];
+            if (cell.revealed || cell.flag) return;
+            cell.revealed = true;
+            cell.element.classList.add('revealed');
+            if (cell.bomb) {
+                cell.element.classList.add('bomb');
+                cell.element.textContent = '💣';
+                endGame(false);
+                return;
+            }
+            revealedCount++;
+            if (cell.adjacent > 0) {
+                cell.element.textContent = cell.adjacent;
+            } else {
+                const directions = [-1, 0, 1];
+                for (let dr of directions) {
+                    for (let dc of directions) {
+                        if (dr === 0 && dc === 0) continue;
+                        const nr = r + dr;
+                        const nc = c + dc;
+                        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                            revealCell(nr, nc);
+                        }
+                    }
+                }
+            }
+        }
+
+        function endGame(won) {
+            gameOver = true;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = board[r][c];
+                    if (cell.bomb) {
+                        cell.element.classList.add('revealed', 'bomb');
+                        cell.element.textContent = '💣';
+                    }
+                }
+            }
+            statusElement.textContent = won ? '¡Ganaste!' : 'Game Over';
+        }
+
+        function checkWin() {
+            if (revealedCount === rows * cols - bombsCount) {
+                endGame(true);
+            }
+        }
+
+        initBoard();
+    </script>
+</body>
+</html>
