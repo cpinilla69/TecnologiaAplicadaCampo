@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reservas Comunidad</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Reservas de Servicios</h1>
+  <form id="reserva-form">
+    <label>Número de apartamento
+      <input type="number" id="apartamento" min="1" max="120" required />
+    </label>
+    <label>Nombre
+      <input type="text" id="nombre" required />
+    </label>
+    <label>Correo electrónico
+      <input type="email" id="correo" required />
+    </label>
+    <label>Servicio
+      <select id="servicio"></select>
+    </label>
+    <label>Fecha
+      <input type="date" id="fecha" required />
+    </label>
+    <label>Hora inicio
+      <input type="time" id="hora" step="1800" required />
+    </label>
+    <label>Duración (h)
+      <input type="number" id="duracion" min="1" max="4" value="1" required />
+    </label>
+    <button type="submit">Reservar</button>
+    <span id="estado"></span>
+  </form>
+  <h2>Listado de Reservas</h2>
+  <div id="filtros">
+    <select id="filtro-servicio"></select>
+    <input type="date" id="filtro-fecha" />
+    <input type="number" id="filtro-apto" min="1" max="120" placeholder="Apto" />
+    <button id="aplicar-filtros">Filtrar</button>
+  </div>
+  <table id="lista">
+    <thead>
+      <tr><th>Apto</th><th>Nombre</th><th>Servicio</th><th>Fecha</th><th>Hora</th><th>Duración</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
